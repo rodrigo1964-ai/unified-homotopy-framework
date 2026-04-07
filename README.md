@@ -4,6 +4,7 @@
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![DOI](https://img.shields.io/badge/DOI-10.6084%2Fm9.figshare.31955865-blue.svg)](https://doi.org/10.6084/m9.figshare.31955865)
 
 ---
 
@@ -192,6 +193,7 @@ If you use this framework in your research, please cite:
   year = {2026},
   publisher = {GitHub},
   url = {https://github.com/rodrigo1964-ai/unified-homotopy-framework},
+  doi = {10.6084/m9.figshare.31955865},
   note = {ORCID: 0000-0002-8787-0038}
 }
 ```
