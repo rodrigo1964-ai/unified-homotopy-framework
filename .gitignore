@@ -47,3 +47,6 @@ scratch/
 
 # Keep figures directory but ignore temporary image files
 figures/*.tmp
+
+# Documentation (private/local only)
+docs/
