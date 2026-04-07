@@ -1,0 +1,516 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage[table]{xcolor}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{setspace}
+\usepackage{tcolorbox}
+
+\geometry{margin=2.5cm, top=3cm, bottom=3cm}
+\onehalfspacing
+
+\definecolor{headerblue}{RGB}{41,65,122}
+\definecolor{lightgray}{RGB}{245,245,245}
+\definecolor{darkgreen}{RGB}{0,100,0}
+
+\hypersetup{colorlinks=true, linkcolor=headerblue, citecolor=headerblue, urlcolor=headerblue}
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+\newtheorem{theorem}{Teorema}
+\newtheorem{proposition}[theorem]{Proposici\'on}
+\newtheorem{corollary}[theorem]{Corolario}
+\newtheorem{definition}[theorem]{Definici\'on}
+\newtheorem{remark}[theorem]{Observaci\'on}
+
+\tcbuselibrary{breakable,skins}
+\newtcolorbox{clave}{colback=blue!5!white, colframe=headerblue, title=\textbf{Idea clave}, fonttitle=\bfseries, breakable}
+\newtcolorbox{resultado}{colback=green!5!white, colframe=darkgreen, title=\textbf{Resultado}, fonttitle=\bfseries, breakable}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textit{Homotop\'ia, Redes Neuronales y la Ecuaci\'on Fundamental de la IA}}
+\fancyhead[R]{\small\textit{R.H. Rodrigo}}
+\fancyfoot[C]{\thepage}
+
+%% ======================================================================
+\title{\textbf{Homotop\'ia, Redes Neuronales y la\\Ecuaci\'on Fundamental de la Inteligencia Artificial}\\[12pt]
+\large Apunte de investigaci\'on --- Abril 2026}
+
+\author{Rodolfo H.\ Rodrigo\\
+\small INAUT, Universidad Nacional de San Juan -- CONICET\\
+\small San Juan, Argentina\\
+\small \texttt{rrodrigo@inaut.unsj.edu.ar}}
+
+\date{}
+
+\begin{document}
+\maketitle
+\thispagestyle{fancy}
+
+\begin{abstract}
+Este apunte sintetiza una visi\'on unificada del aprendizaje autom\'atico basada en la ecuaci\'on de deformaci\'on de Liao (M\'etodo de An\'alisis Homot\'opico, HAM). La tesis central es que \emph{toda red neuronal es un operador no lineal}, y que la ecuaci\'on de Liao $(1-q)\,\mathcal{L}[\phi - \phi_0] = q\,c_0\,\mathcal{N}[\phi]$ constituye la \emph{ecuaci\'on constitutiva} faltante de la IA: determina los coeficientes de la red por deformaci\'on (no por optimizaci\'on), cuantifica cu\'antas neuronas y cu\'antos datos se necesitan, y formaliza c\'omo el conocimiento previo---codificado en $\mathcal{L}$---reduce el tama\~no de la red. Cuando $\mathcal{L}$ es reemplazado por una red neuronal ya entrenada, emerge un mecanismo de \emph{aprendizaje incremental convergente}: cada iteraci\'on agrega conocimiento y reduce el residuo, con redes progresivamente m\'as peque\~nas. El documento integra resultados te\'oricos, experimentales y conexiones con m\'etodos existentes (PINN, boosting, ResNets, transfer learning).
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+%% ======================================================================
+\section{La observaci\'on fundamental}
+%% ======================================================================
+
+\begin{clave}
+Una red neuronal artificial (ANN) es un operador no lineal $\mathcal{N}: \mathbb{R}^n \to \mathbb{R}^m$ parametrizado por $\boldsymbol{\theta}$. No importa su arquitectura (RBF, MLP, CNN, LSTM, Transformer): todas son funciones no lineales de sus entradas y sus par\'ametros.
+\end{clave}
+
+La ecuaci\'on de deformaci\'on de Liao:
+\begin{equation}
+\boxed{(1-q)\,\mathcal{L}[\phi(q) - \phi_0] = q\,c_0\,\mathcal{N}[\phi(q)]}
+\label{eq:liao}
+\end{equation}
+resuelve $\mathcal{N}[\phi] = 0$ para \emph{cualquier} operador no lineal $\mathcal{N}$, deformando continuamente desde una soluci\'on conocida $\phi_0$ (en $q=0$) hasta la soluci\'on buscada (en $q=1$). Las correcciones:
+\begin{equation}
+z_1 = \gamma, \qquad z_2 = \gamma(1+\sigma), \qquad z_3 = \gamma(1+\sigma)^2 + \frac{c_0\,\mathcal{N}''_0}{2\lambda}\,\gamma^2
+\label{eq:z123}
+\end{equation}
+con $\gamma = c_0\,\mathcal{N}_0/\lambda$ y $\sigma = c_0\,\mathcal{N}'_0/\lambda$, son \textbf{universales}: dependen solo del residuo ($\mathcal{N}_0$), el Jacobiano ($\mathcal{N}'_0$) y el Hessiano ($\mathcal{N}''_0$) del operador, no de su estructura interna.
+
+\begin{resultado}
+Si la ecuaci\'on de Liao aplica a cualquier operador no lineal, y una ANN es un operador no lineal, entonces la ecuaci\'on de Liao es la \emph{ecuaci\'on constitutiva de las redes neuronales}. Juega para la IA el rol que $F=ma$ juega para la mec\'anica.
+\end{resultado}
+
+
+%% ======================================================================
+\section{El aprendizaje como deformaci\'on, no como optimizaci\'on}
+%% ======================================================================
+
+La pr\'actica actual del deep learning est\'a basada en \textbf{optimizaci\'on}: backpropagation calcula el gradiente $\partial\mathcal{N}/\partial\boldsymbol{\theta}$ y da un paso de tama\~no $\eta$ (learning rate) en la direcci\'on negativa del gradiente. Es una b\'usqueda: no sabe a d\'onde va, puede quedarse en m\'inimos locales, necesita miles de iteraciones, y no puede garantizar nada sobre el resultado.
+
+La homotop\'ia propone algo fundamentalmente distinto: \textbf{deformaci\'on}. No busca un m\'inimo --- deforma continuamente desde lo conocido ($\phi_0$) hasta lo necesario ($\mathcal{N}[\phi] = 0$). El camino est\'a definido por la ecuaci\'on. Las correcciones $z_1$, $z_2$, $z_3$ son los pasos del camino. Y el camino existe y es \'unico si $|1+\sigma| < 1$.
+
+\begin{table}[H]
+\centering
+\caption{Optimizaci\'on vs.\ deformaci\'on.}
+\rowcolors{2}{lightgray}{white}
+\begin{tabular}{L{4cm} L{5.5cm} L{5.5cm}}
+\toprule
+\textbf{Aspecto} & \textbf{Backpropagation} & \textbf{Homotop\'ia} \\
+\midrule
+Mecanismo & Busca m\'inimo de $\|\mathcal{N}\|^2$ & Deforma $\phi_0 \to \phi^*$ \\
+Direcci\'on & No sabe a d\'onde va & Camino definido por~\eqref{eq:liao} \\
+Convergencia & Lineal ($O(1/k)$) & Cuadr\'atica/c\'ubica ($z_1$/$z_2$) \\
+Learning rate & Necesario, cr\'itico & No existe (autoregulado por $c_0$) \\
+M\'inimos locales & Puede quedar atrapado & No hay landscape, hay deformaci\'on \\
+Garant\'ias & Ninguna a priori & $|1+\sigma|<1$ es verificable \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Los coeficientes de la red no se ``optimizan''. Se \textbf{determinan} por el proceso de deformaci\'on. As\'i como la trayectoria de un planeta no se optimiza --- se determina por la ecuaci\'on de Newton --- los par\'ametros de una red se determinan por la ecuaci\'on de Liao.
+
+
+%% ======================================================================
+\section{Estructura bilineal: todas las redes son iguales}
+%% ======================================================================
+
+Todas las arquitecturas neuronales comparten una estructura com\'un: una \textbf{capa de salida lineal} en sus pesos, y \textbf{par\'ametros internos no lineales}. La homotop\'ia explota esto universalmente.
+
+\begin{table}[H]
+\centering
+\caption{Arquitecturas neuronales como operadores no lineales con estructura bilineal.}
+\label{tab:architectures}
+\rowcolors{2}{lightgray}{white}
+\begin{tabular}{L{2.2cm} L{4.2cm} L{2.5cm} L{3.5cm}}
+\toprule
+\textbf{Arquitectura} & $\boldsymbol{\mathcal{N}[\phi]}$ & \textbf{Lineales} & \textbf{No lineales} \\
+\midrule
+RBF & $\sum w_j\,\varphi(\|x - c_j\|/\lambda_j)$ & $w_j$ & $c_j,\;\lambda_j$ \\
+MLP & $W_2\,\sigma(W_1 x + b_1)$ & $W_2$ (\'ultima capa) & $W_1,\; b_1$ \\
+CNN & $W_{\mathrm{fc}} \cdot \mathrm{conv}(x;\,\mathcal{K})$ & $W_{\mathrm{fc}}$ & kernels $\mathcal{K}$ \\
+LSTM & $W_o \cdot h_T(x;\,W_h)$ & $W_o$ & $W_h,\;W_f,\;W_i$ \\
+SOM & $\sum w_j\,\eta(\|x - m_j\|)$ & topolog\'ia fija & prototipos $m_j$ \\
+Transformer & $W_{\mathrm{head}} \cdot \mathrm{attn}(x;\,Q,K,V)$ & $W_{\mathrm{head}}$ & $Q,\;K,\;V$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{resultado}
+Para \emph{cualquier} arquitectura: los pesos lineales (\'ultima capa) se resuelven exactamente con $z_1$ en un solo paso (m\'inimos cuadrados). Los par\'ametros no lineales (capas internas) se corrigen con $z_1$ (Newton), $z_2$ (Halley), $z_3$ (tercer orden). No hay backpropagation en ning\'un nivel.
+\end{resultado}
+
+
+%% ======================================================================
+\section{Tres niveles de homotop\'ia para un mismo sistema}
+%% ======================================================================
+
+Consideremos un sistema no lineal $\dot{y} + f(y) = u(t)$ donde $f$ se modela con una RBF:
+$$\hat{f}(y) = \sum_{j=1}^{M} w_j\,\varphi\!\left(\frac{\|y - c_j\|}{\lambda_j}\right)$$
+
+Tres problemas cl\'asicamente separados se unifican:
+
+\begin{table}[H]
+\centering
+\caption{Tres niveles, una ecuaci\'on.}
+\rowcolors{2}{lightgray}{white}
+\begin{tabular}{C{1cm} L{2.8cm} C{1.5cm} L{3.5cm} L{2.5cm}}
+\toprule
+\textbf{Nivel} & \textbf{Problema} & $\boldsymbol{\mathcal{L}}$ & $\boldsymbol{\mathcal{N}}$ & $\boldsymbol{\phi}$ \\
+\midrule
+1 & Identificar RBF & $I$ & $\Phi\mathbf{w} - \mathbf{f}$ & $(\mathbf{w}, \mathbf{c}, \boldsymbol{\lambda})$ \\
+2 & Simular ODE & $d/dt + k$ & $\dot{y} + \tilde{f}(y) - u$ & $y_k$ \\
+3 & Ajuste online & $I$ & error de tracking & $(\mathbf{c}, \boldsymbol{\lambda})$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Nivel 1 --- Identificaci\'on:} $\mathcal{N}$ es el error de aproximaci\'on de la RBF. Los pesos $w_j$ se obtienen por m\'inimos cuadrados ($z_1$ exacto). Los centros $c_j$ y anchos $\lambda_j$ se corrigen por Newton--Halley. Inicializaci\'on: K-means.
+
+\textbf{Nivel 2 --- Simulaci\'on:} Partimos de la soluci\'on lineal conocida $y_0(t) = y_0\,e^{-kt} + \int_0^t e^{-k(t-s)} u(s)\,ds$ y deformamos hacia la soluci\'on no lineal. El residuo integral (sin $1/T$, sin derivadas num\'ericas) se corrige paso a paso con $z_1, z_2, z_3$.
+
+\textbf{Nivel 3 --- Online:} Las mismas f\'ormulas del Nivel~1 operan sobre una ventana deslizante de datos nuevos. La red se refina incrementalmente.
+
+\begin{clave}
+Las mismas f\'ormulas $z_1$, $z_2$, $z_3$ resuelven los tres problemas. Lo que cambia es qu\'e significan $\mathcal{N}_0$, $\mathcal{N}'_0$, $\mathcal{N}''_0$ y $\lambda$.
+\end{clave}
+
+
+%% ======================================================================
+\section{Dimensionamiento constructivo: ?`cu\'antas neuronas, cu\'antos datos?}
+%% ======================================================================
+
+Esta es la pregunta abierta de Narendra y Parthasarathy (1990) que nadie respondi\'o constructivamente. El teorema de aproximaci\'on universal (Cybenko 1989, Hornik 1991) dice que \emph{existe} un $M$ suficiente, pero no dice cu\'anto vale. Barron (1993) da $O(1/\sqrt{M})$ pero existencialmente.
+
+El framework homot\'opico da la respuesta como una \textbf{cadena constructiva}:
+
+\begin{equation}
+\boxed{\varepsilon_{\mathrm{sim}} \xrightarrow{\text{Gronwall}} \varepsilon_{\mathrm{id}} \xrightarrow{\text{tasa RBF}} M_{\min} \xrightarrow{\text{cond}(J_c)} N_{\min} \xrightarrow{\text{convergencia}} T_{\max}}
+\label{eq:chain}
+\end{equation}
+
+\textbf{Paso 1.} Gronwall: $\varepsilon_{\mathrm{id}} < \varepsilon_{\mathrm{sim}} \cdot L / (e^{LT_f} - 1)$.
+
+\textbf{Paso 2.} Tasa de aproximaci\'on RBF: $M \geq (b-a)\sqrt{C_\varphi K_2 / \varepsilon_{\mathrm{id}}}$.
+
+\textbf{Paso 3.} Datos suficientes: $N \geq 3M$.
+
+\textbf{Paso 4.} Paso temporal: $T < 1/\max|\tilde{f}'|$.
+
+\begin{resultado}
+Dado un error de simulaci\'on objetivo $\varepsilon_{\mathrm{sim}}$ y un horizonte $T_f$, la cadena~\eqref{eq:chain} especifica \emph{antes de entrenar}: cu\'antos centros ($M$), cu\'antos datos ($N$), y qu\'e paso temporal ($T$). No hay trial-and-error sobre la arquitectura. Es la primera \textbf{ecuaci\'on de dise\~no} para redes neuronales.
+\end{resultado}
+
+\subsection{Verificaci\'on num\'erica: flujo por orificio}
+
+Sistema: $\dot{h} + 0.5\sqrt{h} = u(t)$, con $u(t)$ escal\'on-rampa, 20 puntos de datos, 5 centros Gaussianos.
+
+\begin{table}[H]
+\centering
+\caption{Resultados de la demo.}
+\rowcolors{2}{lightgray}{white}
+\begin{tabular}{L{5cm} C{2cm} C{2cm}}
+\toprule
+\textbf{M\'etrica} & \textbf{Valor} & \textbf{Criterio} \\
+\midrule
+Error m\'ax RBF vs real & 2.3\% & $< 5\%$\;\checkmark \\
+Error m\'ax soluci\'on lineal & 82\% & --- \\
+Mejora RBF / lineal & 35$\times$ & $> 3\times$\;\checkmark \\
+Centros utilizados & 5 & Te\'orico: 29 (equiesp.) \\
+Datos de entrenamiento & 20 & M\'inimo: 15 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+%% ======================================================================
+\section{El conocimiento previo como operador $\mathcal{L}$}
+\label{sec:prior}
+%% ======================================================================
+
+El $M_{\min}$ de la cadena~\eqref{eq:chain} depende de $K_2 = \|\tilde{f}''\|_\infty$, la curvatura de la \textbf{no linealidad reducida} $\tilde{f} = f - \mathcal{L}^{-1}[f]$, no de $f$ completa. El operador $\mathcal{L}$ codifica \emph{lo que ya sabemos} del sistema. Lo que la red tiene que aprender es solo lo que falta: $\tilde{f}$.
+
+\begin{clave}
+Mejor conocimiento previo $\to$ mejor $\mathcal{L}$ $\to$ menor $\tilde{f}$ $\to$ menor $K_2(\tilde{f})$ $\to$ menos neuronas $\to$ menos datos. \textbf{Cuantificado.}
+\end{clave}
+
+\begin{table}[H]
+\centering
+\caption{Espectro de conocimiento previo.}
+\label{tab:prior}
+\rowcolors{2}{lightgray}{white}
+\begin{tabular}{L{3.5cm} L{2.5cm} L{3.5cm} C{1.5cm} C{1.5cm}}
+\toprule
+\textbf{Conocimiento} & $\boldsymbol{\mathcal{L}}$ & $\boldsymbol{\tilde{f}}$ & $\boldsymbol{K_2}$ & $\boldsymbol{M}$ \\
+\midrule
+Ninguno & $I$ & $f$ (todo) & Grande & Grande \\
+Lineal & $d/dt + k$ & $f(y) - ky$ & Medio & Medio \\
+Cuadr\'atico & $d/dt + k + k_2 y$ & $f - ky - k_2 y^2$ & Chico & Chico \\
+Modelo exacto & $\mathcal{L} = f$ & $\tilde{f} = 0$ & 0 & 0 \\
+\textbf{ANN previa} & \textbf{ANN}$_1$ & $\boldsymbol{f - \textbf{ANN}_1}$ & \textbf{Decrece} & \textbf{Decrece} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La \'ultima fila es la clave: cuando $\mathcal{L}$ es reemplazado por una ANN ya entrenada, el framework se convierte en un mecanismo de \textbf{aprendizaje incremental}.
+
+\subsection{Comparaci\'on con PINN}
+
+\begin{table}[H]
+\centering
+\caption{D\'onde entra la f\'isica: PINN vs.\ homotop\'ia.}
+\rowcolors{2}{lightgray}{white}
+\begin{tabular}{L{3.5cm} L{5cm} L{5cm}}
+\toprule
+\textbf{Aspecto} & \textbf{PINN} & \textbf{Homotop\'ia} \\
+\midrule
+La f\'isica entra en & Funci\'on de costo (penalidad) & Operador $\mathcal{L}$ (estructura) \\
+Efecto sobre $M$ & Ninguno (sigue trial-and-error) & Reduce $M$ constructivamente \\
+Convergencia & Descenso por gradiente (lineal) & Newton--Halley (cuadr./c\'ub.) \\
+Dimensionamiento & No abordado & $\varepsilon \to M \to N$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{resultado}
+Poner la f\'isica en la funci\'on de costo (PINN) es agregar una \emph{restricci\'on}. Poner la f\'isica en el operador (homotop\'ia) es \emph{reducir el problema}. La restricci\'on no cambia cu\'antas neuronas se necesitan; la reducci\'on del operador s\'i.
+\end{resultado}
+
+
+%% ======================================================================
+\section{$\mathcal{L}$ como red neuronal: aprendizaje incremental}
+\label{sec:incremental}
+%% ======================================================================
+
+Este es el resultado conceptual m\'as profundo. Si $\mathcal{L}$ puede ser \emph{cualquier operador lineal elegido libremente} (libertad fundamental del HAM), ?`qu\'e pasa si elegimos $\mathcal{L} = \text{ANN}_1$, una red ya entrenada?
+
+La homotop\'ia se convierte en:
+\begin{equation}
+(1-q)\,\text{ANN}_1[\phi - \phi_0] = q\,c_0\,\mathcal{N}[\phi]
+\end{equation}
+
+La ANN$_2$ que se entrena en esta iteraci\'on solo aprende el \textbf{residuo} $\tilde{f} = f - \text{ANN}_1$. Y la cadena de dimensionamiento dice que ANN$_2$ puede ser m\'as chica que ANN$_1$, porque $K_2(\tilde{f}) < K_2(f)$.
+
+\subsection{El proceso iterativo}
+
+\begin{table}[H]
+\centering
+\caption{Aprendizaje incremental por homotop\'ia.}
+\rowcolors{2}{lightgray}{white}
+\begin{tabular}{C{1.5cm} L{3cm} L{3.5cm} C{1.5cm} C{1.5cm}}
+\toprule
+\textbf{Iter.} & $\boldsymbol{\mathcal{L}}$ & \textbf{La red aprende} & $\boldsymbol{K_2}$ & $\boldsymbol{M}$ \\
+\midrule
+1 & $I$ (nada) & $f$ completa & Grande & Grande \\
+2 & ANN$_1$ & $\tilde{f}_1 = f - \text{ANN}_1$ & Medio & Medio \\
+3 & ANN$_1$ + ANN$_2$ & $\tilde{f}_2 = f - \text{ANN}_1 - \text{ANN}_2$ & Chico & Chico \\
+$k$ & $\sum_{i=1}^{k-1}$ ANN$_i$ & $\tilde{f}_{k-1} \to 0$ & $\to 0$ & $\to 0$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Cada iteraci\'on:
+\begin{enumerate}[nosep]
+\item El conocimiento acumulado crece.
+\item El residuo se achica.
+\item La red nueva es m\'as chica.
+\item La convergencia est\'a garantizada si $|1+\sigma| < 1$ en cada paso.
+\end{enumerate}
+
+\begin{clave}
+El aprendizaje es \textbf{aditivo y convergente por construcci\'on}. No hay olvido catastr\'ofico, no hay inestabilidad. Cada red nueva solo tiene que aprender lo que las anteriores no cubrieron.
+\end{clave}
+
+\subsection{Qu\'e formaliza esto}
+
+\textbf{Boosting} (Freund--Schapire): cada weak learner aprende el residuo del anterior. La homotop\'ia le da la condici\'on de convergencia ($|1+\sigma|<1$) y el dimensionamiento ($M_k$ decrece).
+
+\textbf{ResNets} (He et al.): las skip connections hacen que cada bloque aprenda $\tilde{f} = f - \text{identidad}$. Eso es $\mathcal{L} = I$. La homotop\'ia explica por qu\'e funciona: el residuo tiene menor curvatura.
+
+\textbf{Transfer learning}: el modelo preentrenado es $\mathcal{L}$. Fine-tuning es entrenar una red chica sobre~$\tilde{f}$. La homotop\'ia cuantifica cu\'anto m\'as chica puede ser.
+
+
+%% ======================================================================
+\section{ANN como suced\'aneo de la f\'isica: problemas inversos}
+\label{sec:inverse}
+%% ======================================================================
+
+Cuando la f\'isica forward es intratable anal\'iticamente pero \textbf{medible experimentalmente} --- multif\'isica, transferencia de calor acoplada con mec\'anica de fluidos, procesos qu\'imicos con cin\'etica compleja --- nadie tiene el operador $\mathcal{N}$ en forma cerrada. Pero s\'i tiene datos: mediciones de laboratorio, simulaciones FEM, ensayos experimentales.
+
+\textbf{Esquema propuesto:}
+\begin{enumerate}[nosep]
+\item Entrenar ANN$_\theta$ con pares $(f_k, g_k)$ generados por medici\'on/simulaci\'on: $\hat{\mathcal{N}}_\theta \approx \mathcal{N}$.
+\item Invertir con HAM: dado $g^*$ observado, resolver $\hat{\mathcal{N}}_\theta(f^*) = g^*$.
+\end{enumerate}
+
+La homotop\'ia para el problema inverso:
+\begin{equation}
+(1-q)\,\mathcal{L}[F(q) - f_0] = q\,c_0\,[\hat{\mathcal{N}}_\theta(F(q)) - g^*]
+\end{equation}
+
+Las correcciones requieren $\mathcal{N}'_0 = \partial\hat{\mathcal{N}}_\theta/\partial f\big|_{f_0}$ (Jacobiano de la ANN), que es \textbf{exacto por autodiff}.
+
+\subsection{Experimento: ra\'ices de polinomios v\'ia relaciones de Vieta}
+
+\textbf{Forward} (Vieta, f\'isica conocida): $(r_1, r_2, r_3) \mapsto (a_2, a_1, a_0)$
+$$a_2 = -(r_1+r_2+r_3), \quad a_1 = r_1 r_2 + r_1 r_3 + r_2 r_3, \quad a_0 = -r_1 r_2 r_3$$
+
+\textbf{Inverso} (mal condicionado): dados coeficientes, hallar ra\'ices.
+
+\textbf{Resultados clave:}
+\begin{itemize}[nosep]
+\item HAM+Vieta (f\'isica informada): converge exactamente.
+\item HAM+ANN (suced\'aneo): converge al cero de la ANN, no de Vieta. Error acotado por la calidad del surrogate ($\sim 0.005$).
+\item La columna ANN \emph{replica} la columna Vieta fielmente. HAM hace su trabajo.
+\item Newton puro diverge (mal condicionamiento). Levenberg--Marquardt converge ($J^T J + \lambda I$ regulariza).
+\end{itemize}
+
+\begin{clave}
+HAM converge siempre al inverso del operador que se le da. Si el operador es exacto (Vieta), la soluci\'on es exacta. Si es aproximado (ANN), la soluci\'on est\'a acotada por el error del surrogate. \textbf{El error es del modelo, no del m\'etodo.}
+\end{clave}
+
+\subsection{?`Por qu\'e no entrenar directamente una ANN inversa?}
+
+Porque las mediciones son pocas. Las pocas mediciones alcanzan para el forward porque es suave y bien condicionado. La inversa no: es mal condicionada, las pocas muestras no capturan la estructura de sensibilidad, y puede ser multivaluada. HAM extrae la inversi\'on sin datos adicionales. \textbf{Los datos van al forward, HAM hace el resto.}
+
+
+%% ======================================================================
+\section{La elecci\'on de $\mathcal{L}$ como inductive bias formal}
+%% ======================================================================
+
+En machine learning se habla informalmente de ``inductive bias'': la arquitectura codifica supuestos sobre el problema. Una CNN asume invariancia traslacional. Un Transformer asume relevancia por atenci\'on. Pero nadie cuantifica el efecto del bias sobre el tama\~no de la red.
+
+En el framework homot\'opico, $\mathcal{L}$ \emph{es} el inductive bias, y su efecto es cuantificable:
+\begin{equation}
+M \propto \|\tilde{f}\|_* = \|f - \mathcal{L}^{-1}[f]\|_*
+\end{equation}
+donde $\|\cdot\|_*$ es la norma apropiada ($K_2$ para RBF, norma de Barron para MLP, etc.).
+
+\begin{table}[H]
+\centering
+\caption{Inductive bias como elecci\'on de $\mathcal{L}$.}
+\rowcolors{2}{lightgray}{white}
+\begin{tabular}{L{3cm} L{5cm} L{5cm}}
+\toprule
+\textbf{Arquitectura} & \textbf{$\mathcal{L}$ impl\'icito} & \textbf{Efecto} \\
+\midrule
+MLP gen\'erico & $I$ (identidad) & Sin reducci\'on, $M$ grande \\
+CNN & Invariancia traslacional & Reduce $M$ para se\~nales con simetr\'ia espacial \\
+Transformer & Atenci\'on a tokens relevantes & Reduce $M$ para secuencias con dependencias lejanas \\
+RBF + $k$ & $d/dt + k$ (linealiz.) & Reduce $M$ si el sistema es cuasi-lineal \\
+Red preentrenada & ANN$_1$ & Reduce $M$ en lo que ANN$_1$ ya aprendi\'o \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{resultado}
+La homotop\'ia hace expl\'icito y cuantificable lo que las arquitecturas de deep learning hacen impl\'icitamente. La cadena $\varepsilon \to M \to N$ aplica a todas, con $K_2$ reemplazado por la medida de complejidad residual despu\'es de restar lo que $\mathcal{L}$ ya sabe.
+\end{resultado}
+
+
+%% ======================================================================
+\section{La matem\'atica formal que le falta a la IA}
+%% ======================================================================
+
+La IA actual es una disciplina emp\'irica disfrazada de matem\'atica. Tiene:
+\begin{itemize}[nosep]
+\item Teoremas de \emph{existencia}: Cybenko (1989), Hornik (1991) --- existe una red que aproxima.
+\item Cotas \emph{asint\'oticas}: Barron (1993) --- el error decrece como $O(1/\sqrt{M})$.
+\item Algoritmos que \emph{funcionan}: backprop, Adam, SGD.
+\end{itemize}
+
+Pero \textbf{no tiene ecuaciones de dise\~no}. Un ingeniero el\'ectrico dise\~na un filtro: le dan la frecuencia de corte y calcula el orden. Un ingeniero civil dise\~na una viga: le dan la carga y calcula la secci\'on. Un ingeniero de IA dise\~na una red: le dan el problema y... prueba. Neural Architecture Search. Hyperparameter sweep. Miles de millones de d\'olares en compute buscando arquitecturas a ciegas.
+
+El framework homot\'opico provee la primera ecuaci\'on de dise\~no:
+$$M \geq (b-a)\sqrt{\frac{C_\varphi\,K_2\,(e^{LT_f}-1)}{L\,\varepsilon_{\mathrm{sim}}}}$$
+
+Es una f\'ormula que un ingeniero puede computar con los datos del problema, \textbf{antes de entrenar}.
+
+
+%% ======================================================================
+\section{S\'intesis: un solo framework para toda la IA}
+%% ======================================================================
+
+Toda la construcci\'on se resume en una sola tabla:
+
+\begin{table}[H]
+\centering
+\caption{La ecuaci\'on de Liao aplicada a la inteligencia artificial.}
+\label{tab:synthesis}
+\rowcolors{2}{lightgray}{white}
+\begin{tabular}{L{3.5cm} L{10.5cm}}
+\toprule
+\textbf{Concepto IA} & \textbf{Formalizaci\'on homot\'opica} \\
+\midrule
+Red neuronal & Operador no lineal $\mathcal{N}$ \\
+Entrenamiento & Deformaci\'on de $q=0$ a $q=1$ \\
+Learning rate & No existe. $c_0$ y $\lambda$ autorregulan \\
+Backpropagation & Caso degenerado: $z_1$ con $\lambda = 1/\eta$ \\
+Convergencia & $|1+\sigma| < 1$, verificable \\
+Inductive bias & Elecci\'on de $\mathcal{L}$ \\
+Dimensionamiento & $\varepsilon \to M \to N \to T$ (constructivo) \\
+Conocimiento previo & $\mathcal{L} = \text{modelo conocido}$ $\to$ reduce $M$ \\
+Transfer learning & $\mathcal{L} = \text{ANN preentrenada}$ \\
+Boosting / ResNets & Aprendizaje incremental con $\mathcal{L} = \sum$ ANN$_i$ \\
+PINN & F\'isica en loss (constraint). Homotop\'ia: f\'isica en $\mathcal{L}$ (reducci\'on) \\
+Problema inverso & HAM con $\mathcal{N} = $ ANN surrogate \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{resultado}
+La ecuaci\'on de deformaci\'on de Liao $(1-q)\mathcal{L}[\phi - \phi_0] = q\,c_0\,\mathcal{N}[\phi]$ es la \textbf{ecuaci\'on constitutiva faltante de la inteligencia artificial}. Unifica entrenamiento, simulaci\'on, dimensionamiento, conocimiento previo, aprendizaje incremental y problemas inversos en un solo marco matem\'atico formal.
+\end{resultado}
+
+
+%% ======================================================================
+\section{Conclusiones y l\'ineas abiertas}
+%% ======================================================================
+
+\begin{enumerate}
+\item Toda ANN es un operador no lineal. La ecuaci\'on de Liao aplica a todas.
+
+\item Los coeficientes de la red se \emph{determinan} por deformaci\'on, no se \emph{optimizan} por b\'usqueda.
+
+\item La cadena $\varepsilon_{\mathrm{sim}} \to M \to N \to T$ es la primera ecuaci\'on de dise\~no para redes neuronales.
+
+\item El conocimiento previo entra como $\mathcal{L}$ y reduce $M$ cuantitativamente. Esto formaliza el inductive bias.
+
+\item Cuando $\mathcal{L}$ es una ANN previa, emerge aprendizaje incremental convergente con redes progresivamente m\'as chicas.
+
+\item La ANN como suced\'aneo de la f\'isica permite resolver problemas inversos por HAM sin modelo anal\'itico.
+
+\item Todo esto est\'a conectado con PINN, boosting, ResNets, transfer learning --- pero con fundamento formal y ecuaciones de dise\~no.
+\end{enumerate}
+
+\subsection{L\'ineas abiertas}
+
+\begin{itemize}
+\item \textbf{Tasas de aproximaci\'on para Transformers.} La cadena~\eqref{eq:chain} requiere la tasa $\varepsilon(M)$ para cada arquitectura. Para RBF y MLP existen (Wu--Schaback, Barron). Para Transformers, no. El framework indica d\'onde buscar: en la relaci\'on entre la complejidad de $\mathcal{N}$ y la curvatura del problema.
+
+\item \textbf{$\mathcal{L}$ adaptativo.} Usar la linealizaci\'on de la RBF \emph{en cada paso temporal} (no fija): $k = \hat{f}'(y_{k-1})$. Esto da $\lambda \approx 1$ siempre (bien condicionado).
+
+\item \textbf{Certificaci\'on para sistemas embebidos.} La cadena $\varepsilon \to M \to N$ es un argumento de certificaci\'on: ``esta red con $M=5$ centros garantiza error $< 5\%$ durante 10 segundos, con 20 datos de calibraci\'on.''
+
+\item \textbf{Formalizaci\'on como tesis.} Este apunte constituye el n\'ucleo te\'orico de una posible tesis doctoral en la intersecci\'on de an\'alisis funcional, teor\'ia de la aproximaci\'on e inteligencia artificial.
+\end{itemize}
+
+\vfill
+\begin{center}
+\rule{10cm}{0.4pt}\\[6pt]
+\small\textit{``Poner la f\'isica en la funci\'on de costo es agregar una restricci\'on.\\
+Poner la f\'isica en el operador es reducir el problema.''}\\[6pt]
+\small San Juan, abril de 2026
+\end{center}
+
+\end{document}
