@@ -191,7 +191,8 @@ If you use this framework in your research, please cite:
   title = {Unified Homotopy Framework for System Identification},
   year = {2026},
   publisher = {GitHub},
-  url = {https://github.com/rodrigo1964-ai/unified-homotopy-framework}
+  url = {https://github.com/rodrigo1964-ai/unified-homotopy-framework},
+  note = {ORCID: 0000-0002-8787-0038}
 }
 ```
 
@@ -207,7 +208,8 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 **Rodolfo H. Rodrigo**  
 INAUT-UNSJ-CONICET  
-Argentina
+Argentina  
+[![ORCID](https://img.shields.io/badge/ORCID-0000--0002--8787--0038-green.svg)](https://orcid.org/0000-0002-8787-0038)
 
 ---
 
