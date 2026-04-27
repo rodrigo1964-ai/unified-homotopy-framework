@@ -17,6 +17,11 @@ Date: April 2026
 import numpy as np
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
+import os
+
+# Ensure figures directory exists (relative to script location)
+_FIG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'figures')
+os.makedirs(_FIG_DIR, exist_ok=True)
 
 # Try sklearn for KMeans, fallback to simple implementation if not available
 try:
@@ -398,7 +403,7 @@ ax1.set_title('Level 1: RBF Identification Quality')
 ax1.legend()
 ax1.grid(True, alpha=0.3)
 fig1.tight_layout()
-fig1.savefig('/home/rodo/21Paper/figures/fig_identification.png', dpi=300)
+fig1.savefig(os.path.join(_FIG_DIR, 'fig_identification.png'), dpi=300)
 print("  Saved: fig_identification.png")
 
 # Figure 2: Simulation comparison
@@ -420,7 +425,7 @@ ax2b.legend(loc='best')
 ax2b.grid(True, alpha=0.3)
 
 fig2.tight_layout()
-fig2.savefig('/home/rodo/21Paper/figures/fig_simulation.png', dpi=300)
+fig2.savefig(os.path.join(_FIG_DIR, 'fig_simulation.png'), dpi=300)
 print("  Saved: fig_simulation.png")
 
 # Figure 3: Residual convergence
@@ -432,7 +437,7 @@ ax3.set_ylabel('Residual norm ||N||')
 ax3.set_title('Parametric Homotopy Convergence')
 ax3.grid(True, alpha=0.3, which='both')
 fig3.tight_layout()
-fig3.savefig('/home/rodo/21Paper/figures/fig_residuals.png', dpi=300)
+fig3.savefig(os.path.join(_FIG_DIR, 'fig_residuals.png'), dpi=300)
 print("  Saved: fig_residuals.png")
 
 # Figure 4: RBF components
@@ -450,7 +455,7 @@ ax4.set_title(f'RBF Decomposition ({M} Gaussian centers)')
 ax4.legend(loc='best', ncol=2, fontsize=8)
 ax4.grid(True, alpha=0.3)
 fig4.tight_layout()
-fig4.savefig('/home/rodo/21Paper/figures/fig_rbf_components.png', dpi=300)
+fig4.savefig(os.path.join(_FIG_DIR, 'fig_rbf_components.png'), dpi=300)
 print("  Saved: fig_rbf_components.png")
 
 # ============================================================================
@@ -477,7 +482,7 @@ print("\nKey results:")
 print(f"  • RBF identified with {M} centers from {len(t_data)} data points")
 print(f"  • Residual reduced {reduction_ratio:.1f}x via parametric homotopy")
 print(f"  • Simulation accuracy improved {improvement_factor:.1f}x over linear solution")
-print(f"  • All figures saved to /home/rodo/21Paper/figures/")
+print(f"  • All figures saved to {_FIG_DIR}/")
 print("\nThis demonstrates:")
 print("  1. Parametric homotopy (Level 1) identifies nonlinear RBF from sparse data")
 print("  2. Integral homotopy (Level 2) solves ODE without numerical derivatives")
