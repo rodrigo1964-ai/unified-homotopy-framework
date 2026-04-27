@@ -50,3 +50,8 @@ figures/*.tmp
 
 # Documentation (private/local only)
 docs/
+
+# Internal development notes (not for public repo)
+_dev/
+CLAUDE_*.md
+!_dev/.gitkeep

@@ -1,0 +1,41 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite both the software and the associated paper."
+title: "Unified Homotopy Framework for Nonlinear System Identification and Simulation"
+abstract: "Architecture-agnostic framework for nonlinear system identification and ODE simulation using truncated homotopy series corrections (z1 Newton, z2 Halley) on a bilinear parameter structure. Avoids stochastic gradient descent and learning-rate tuning."
+type: software
+authors:
+  - family-names: "Rodrigo"
+    given-names: "Rodolfo H."
+    affiliation: "Instituto de Automática (INAUT), Universidad Nacional de San Juan -- CONICET, Argentina"
+    orcid: "https://orcid.org/0000-0002-8787-0038"
+    email: "rrodrigo@inaut.unsj.edu.ar"
+  - family-names: "Patiño"
+    given-names: "H. Daniel"
+    affiliation: "Instituto de Automática (INAUT), Universidad Nacional de San Juan -- CONICET, Argentina"
+version: "1.0.0"
+date-released: "2026-04-27"
+license: MIT
+repository-code: "https://github.com/rodrigo1964-ai/unified-homotopy-framework"
+identifiers:
+  - type: doi
+    value: "10.6084/m9.figshare.31955865"
+    description: "Figshare archive of the framework code and reproducibility materials"
+keywords:
+  - homotopy analysis method
+  - system identification
+  - radial basis functions
+  - multilayer perceptron
+  - Newton-Halley methods
+  - inductive bias
+  - constructive dimensioning
+preferred-citation:
+  type: article
+  title: "A Unified Homotopy Framework for Nonlinear System Identification and Simulation via Radial Basis Function and Multilayer Perceptron Regressors"
+  authors:
+    - family-names: "Rodrigo"
+      given-names: "Rodolfo H."
+    - family-names: "Patiño"
+      given-names: "H. Daniel"
+  year: 2026
+  journal: "Neural Networks"
+  status: "submitted"
