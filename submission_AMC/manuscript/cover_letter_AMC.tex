@@ -1,0 +1,89 @@
+\documentclass[11pt]{letter}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{hyperref}
+
+\address{Rodolfo H. Rodrigo \\
+Instituto de Autom\'atica (INAUT) \\
+UNSJ--CONICET \\
+San Juan J5400ARL, Argentina \\
+\href{mailto:rrodrigo@inaut.unsj.edu.ar}{rrodrigo@inaut.unsj.edu.ar}}
+
+\signature{Rodolfo H. Rodrigo \\ on behalf of the authors}
+
+\begin{document}
+
+\begin{letter}{Editor-in-Chief \\ \emph{Applied Mathematics and Computation} \\ Elsevier}
+
+\opening{Dear Editor,}
+
+We are pleased to submit for your consideration the manuscript entitled
+\emph{``A Unified Homotopy Framework for Nonlinear System Identification
+and Simulation: Constructive Dimensioning of Bilinear Neural
+Architectures,''} co-authored by Rodolfo H.\ Rodrigo and H.\ Daniel
+Pati\~no (Instituto de Autom\'atica, INAUT, UNSJ--CONICET).
+
+The manuscript develops a unified algorithmic framework for two fundamental
+computational problems in nonlinear dynamical systems: parametric function
+approximation from sparse input--output data (system identification), and
+forward numerical integration of the resulting ordinary differential
+equation (simulation). Both tasks are reduced to closed-form Newton ($z_1$)
+and Halley ($z_2$) corrections derived from Liao's zeroth-order homotopy
+deformation equation, exploiting the bilinear parameter structure shared
+by common function representations (radial basis functions, multilayer
+perceptrons).
+
+The principal theoretical contribution is a \emph{constructive dimensioning
+chain} that maps a target forward-simulation accuracy to approximation-theoretic
+bounds on the minimum number of basis functions, the minimum number of
+training samples (via Jacobian conditioning), and the maximum admissible
+integration time step (via Newton convergence on the discrete residual).
+The chain is constructive in the sense that each link is computable from
+system quantities, and it admits an operator-theoretic interpretation:
+the choice of the auxiliary linear operator $\mathcal{L}$ encodes prior
+knowledge that reduces the residual nonlinearity the approximator must
+learn, thereby reducing the required approximator dimension.
+
+We validate the framework on three benchmark problems: a one-dimensional
+discharge-flow system (orifice-tank model), a two-dimensional Lotka-Volterra
+predator-prey system, and robustness experiments under varying levels of
+measurement noise. Small-scale parametric approximators (5--8 basis functions)
+identified from sparse data (20--40 samples) attain residuals below $10^{-6}$
+in a single outer iteration and yield forward-simulation errors below 2\%
+over 200-step horizons. We also provide extended wall-clock comparisons
+with modern gradient-based optimizers (Adam, L-BFGS) demonstrating the
+computational advantages of exploiting bilinear structure in small-network
+regimes.
+
+The scope of the empirical validation is deliberately narrow---low-dimensional
+ODEs, small-scale approximators---and the role of the present work is to
+establish the algorithmic framework, the dimensioning theory, and the
+proof-of-concept computational regime. This positioning aligns naturally
+with the scope of \emph{Applied Mathematics and Computation}: the
+contribution falls at the interface of approximation theory, numerical
+analysis for differential equations, and computational methods for system
+identification, providing rigorous mathematical foundations with targeted
+empirical validation rather than large-scale engineering demonstrations.
+
+We confirm that the manuscript is original, has not been published
+elsewhere, and is not under consideration by any other journal. Companion
+manuscripts by the authors that share the same conceptual lineage but
+address distinct mechanisms (integral Volterra formulation; implicit-model
+sample complexity; coupled-system identification) are explicitly delineated
+in a dedicated section of the manuscript and are at different stages of
+preparation in venues that do not overlap with \emph{Applied Mathematics
+and Computation}.
+
+The reference implementations, benchmark scripts, and figure-generation
+code are publicly available at
+\href{https://github.com/rodrigo1964-ai/unified-homotopy-framework}{github.com/rodrigo1964-ai/unified-homotopy-framework}
+and archived at Figshare (DOI:
+\href{https://doi.org/10.6084/m9.figshare.31955865}{10.6084/m9.figshare.31955865}).
+
+We thank you in advance for considering our work.
+
+\closing{Yours sincerely,}
+
+\end{letter}
+
+\end{document}
